@@ -10,6 +10,6 @@ WEB Geovisualization of the University of Science and Technology Houari Boumedie
 
 ![alt text](https://github.com/CHEREF-Mehdi/Geovisualization/blob/master/ReadMeImage/demo3.png)
 
-# Native mobile android application
+# Native android mobile application
 
 This WEB application was converted to mobile application using android webview, you can find the mobile varsion at main folder.
