@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title> Ajout de cercles</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<link rel="stylesheet" href="style.css">
+		<script type="text/javascript" src="d3.v3.js"></script>		
+		
+	</head>
+	<body>
+		<div id="DivPOp" class="popup" >
+		 <span class="popuptext" id="myPopup"></span>
+		</div>
+
+		<div id="DivPOp2" class="popup" >
+			<span class="popuptext" id="myPopup2"></span>
+		</div>
+
+		<div id="id01" class="w3-modal" >
+			<div class="w3-modal-content w3-card-4 w3-animate-zoom" style="max-width:70%;">
+				<header class="w3-container w3-blue"> 
+					<span onclick="document.getElementById('id01').style.display='none'" class="w3-button w3-blue w3-xlarge w3-display-topright">&times;</span>
+					<img src="icons/information-yellow.png"style="position:absolute; top:10px;" width="35" height="35"/>
+					<h4 id="building" style=" margin-left: 50px;  margin-top: 15px;margin-right: 30px;" ></h4>
+					
+				</header>
+
+				<div class="w3-bar w3-border-bottom">
+					<button id="londonM" class="tablink w3-bar-item w3-button" >Conférences <img id="notifImgConf" src="icons/information.png" style="position:relative; bottom:10px;" width="14" height="14"/></button>
+					<button id="ParisM" class="tablink w3-bar-item w3-button" >Soutenances <img id="notifImgSout"src="icons/information.png" style="position:relative;  bottom:10px;" width="14" height="14"/></button>
+					<button id="TokyoM" class="tablink w3-bar-item w3-button" >Événement universitaire <img id="notifImgEventU"src="icons/information.png" style="position:relative; bottom:10px;" width="14" height="14"/></button>
+				</div>
+
+				<div id="London" class="w3-container city" style="height:40%;">
+					<h4 id="TitleConf">Conférences</h4>
+					<p id="PlannigConf" >London is the most populous city in the United Kingdom, with a metropolitan area of over 9 million inhabitants.</p>					
+				</div>
+
+				<div id="Paris" class="w3-container city" style="height:40%;">
+					<h4 id="TitleSout">Soutenances</h4>
+					<p id="PlannigSout">Paris is the capital of France.</p>
+					
+				</div>
+
+				<div id="Tokyo" class="w3-container city" style="height:40%;">
+					<h4 id="TitleEventU">Événement universitaire</h4>
+					<p id="PlannigEventU" >Tokyo is the capital of Japan.</p><br>
+				</div>
+
+				<div class="w3-container w3-light-grey w3-padding">
+					
+				</div>
+			</div>
+		</div>
+		
+		<div id="ZoomDiv" class="leaflet-control-zoom leaflet-bar leaflet-control">
+			<a id="Zoom"; class="leaflet-control-zoom-in" href="#" title="Zoom in">+</a>
+			<a id="centre" class="leaflet-control-zoom-in" class="leaflet-control-zoom-out" href="#" title="Zoom in"><img  src="icons/focus.png" style="margin-left:-1px";  width="20px" height="20px"/></a>
+			<a id="UNZoom"; class="leaflet-control-zoom-out" href="#" title="Zoom out">-</a>
+		</div>
+		
+		<script type="text/javascript">
+			var ids=[];
+			var w = "1000";
+			var h ="630";
+			var SCALE=1;
+			var popup = document.getElementById("myPopup");
+			var div=document.getElementById("DivPOp");
+			var firstClick=true;
+			var popup2 = document.getElementById("myPopup2");
+			var div2=document.getElementById("DivPOp2");
+			var firstClick2=true;
+			var notif = null;
+			var zidscale;
+            var bounds;
+			var country;
+			var center;
+			var Departements = { "Département Informatique": ["DepInfo-1E","DepInfo-2E","DepInfo-3E"],
+								 "Faculté des Sciences Biologiques":["Bio-1E","Bio-2E"]
+								};
+
+			var svg = d3.select("body")
+						.append("svg")
+						.attr("id","MySVG")
+						.attr("width", w)
+						.attr("height", h)
+						.attr("style",'stroke-width: 1px; stroke:#CB6D01; background-color: #72C6EA;');
+			
+			//Define map projection
+			var proj = d3.geo.mercator()
+								.translate([0,0])
+								.scale([1]);						
+						
+			document.getElementById("MySVG").addEventListener("wheel", OnwheelEvent);	
+						
+			
+			draw();
+			
+			function draw(){
+				d3.json("usthbBrut2.json", function(json) {
+						
+					center = d3.geo.centroid(json);
+                    var scale  = 150;
+                    var offset = [w/2, h/2];
+                    proj = d3.geo.mercator().scale(scale).center(center)
+                    .translate(offset);      
+                            
+                    // create the path
+                    path = d3.geo.path().projection(proj);
+                    bounds  = path.bounds(json);
+                    var hscale  = scale*w  / (bounds[1][0] - bounds[0][0]);
+                    var vscale  = scale*h / (bounds[1][1] - bounds[0][1]);
+                    var scale   = (hscale < vscale) ? hscale : vscale;  
+                    zidscale=scale;
+                    var offset  = [w - (bounds[0][0] + bounds[1][0])/2,
+                                h - (bounds[0][1] + bounds[1][1])/2];
+					
+                    // new projection
+                    proj = d3.geo.mercator().center(center)
+                    .scale(scale).translate(offset);
+                    
+                    path = path.projection(proj);
+
+					country = svg.selectAll("path")
+									.data(json.features);							   						
+																			
+					country.enter()								
+								.append("path")									
+								.attr("d", path)
+								.attr("class",function(e){  if(e.properties.etage.length>0) return "SOS"; else return "NoTSOS"})
+								.attr("id",function(e){  return ""+e.properties.etage;})
+								.attr("fill",function(e){ if(e.properties.fill.trim()!=="") return e.properties.fill.trim();else return "#98A5A3";})
+								.attr("stroke","#0C0C0C")
+								.attr("opacity",function(e){ return e.properties.opacity.trim();})
+								.on('mouseup',function(e){
+											//console.log(e.properties);					
+									if(e.properties.name.trim()!=="" && newX!=null && newY!=null){																																								
+										div.style.left = newX+ "px";
+										div.style.top = newY+ "px";
+										popup.innerHTML=e.properties.name;
+										if(firstClick===true){																						
+											popup.classList.toggle("show");
+											popup.style.display="block";
+											firstClick=false;
+										}else{
+											popup.classList.toggle("show");
+											popup.classList.toggle("show");
+											popup.style.display="block";												
+										}
+
+										if(e.properties.etage.length===0) popup.style.display="block";
+										else{
+											if( SCALE===14) {
+												popup.style.display="none";
+												popup2.style.display="none";
+												fillEtage(e.properties.name,e.properties.etage);
+												document.getElementById('id01').style.display='block';
+												IndexDepartements=e.properties.name.trim();
+											}
+										}
+										
+									}else{
+										popup.style.display="none";	
+																		
+									}																		
+									
+								});										
+									
+						var IconWidth=Value();	
+						country.each(function (d, i) {
+					
+							var centroid = path.centroid(d);
+
+							if(d.properties.icon.trim()!==""){
+								ids.push("id"+i);
+								svg.append("image")
+								.attr("id","id"+i)
+							  	.attr("xlink:href", d.properties.icon)							  
+							  	.attr("width", IconWidth)
+							  	.attr("height", IconWidth)
+							  	.attr("x", centroid[0])
+							  	.attr("y",centroid[1])
+								.attr("transform", "translate(" + -IconWidth/2 + "," + -IconWidth/2 + ")")
+							  	.on('mouseup',function(){
+									
+									if(d.properties.name.trim()!=="" && newX!=null && newY!=null){
+										 																														
+										div.style.left = newX+ "px";
+										div.style.top = newY+ "px";
+										popup.innerHTML=d.properties.name;
+										if(firstClick===true){																						
+											popup.classList.toggle("show");
+											popup.style.display="block";
+											firstClick=false;
+										}else{
+											popup.classList.toggle("show");
+											popup.classList.toggle("show");
+											popup.style.display="block";												
+										}										
+										if(d.properties.etage.length===0) popup.style.display="block";
+									}else{
+										popup.style.display="none";										
+									}																		
+																																	
+								});
+									
+							}
+							
+							if(d.properties.event.trim()!==""){
+								ids.push("event"+i);
+								svg.append("image")
+								.attr("id","event"+i)
+								.attr("xlink:href", "icons/information_y.png")
+								.attr("class","notif")
+								.attr("width", IconWidth)
+								.attr("height", IconWidth)
+								.attr("x",centroid[0])
+								.attr("y",centroid[1])
+								.on('mouseup',function(){
+										popup.style.display="none";	
+										fillNotification(d.properties.name,d.properties.conference.title,d.properties.conference.description,d.properties.soutenance.title,d.properties.soutenance.description,d.properties.eventUniv.title,d.properties.eventUniv.description);								
+										document.getElementById('id01').style.display='block'									
+								});
+							
+							   notif = document.getElementsByClassName("notif");
+							}
+						
+						
+						});
+
+				});	
+			
+			}
+			
+			/********************************************************************************/
+			document.getElementById("ZoomDiv").style=" position: absolute;margin-left:"+(1000-50)+"px; margin-top:15px;";
+			
+			document.getElementById("Zoom").addEventListener("click",function(){
+				zoumIn(500);
+			});
+			
+			document.getElementById("UNZoom").addEventListener("click",function(){
+				zoomOut(500);
+			});			
+
+			document.getElementById("centre").addEventListener("click",function(){				
+				focus(500);
+			});
+
+			function zoomOut(delay){
+				
+				SCALE--;
+				popup.style.display="none";
+				popup2.style.display="none";
+				if(SCALE<1) {
+					SCALE=1; 	
+					focus(delay);												
+				}													
+				else {
+					zidscale-=8000000;				
+					proj.scale(zidscale);			
+					path.projection(proj);				
+					var s = svg.selectAll("path").transition().duration(delay).attr("d",path);								
+					SetPosIcons(delay-100);	
+				}	
+				//document.getElementById("showmsg").innerHTML=SCALE;															
+			}
+
+			function zoumIn(delay){
+				
+				SCALE++;
+				popup.style.display="none";	
+				popup2.style.display="none";				
+				if(SCALE>14) {
+					indexEtage=0;
+					SCALE=14;										
+				}													
+				else {
+
+					zidscale+=8000000;					
+					proj.scale(zidscale);
+					path.projection(proj);					
+					var s = svg.selectAll("path").transition().duration(delay).attr("d",path);								
+					SetPosIcons(delay-100);														
+				}	
+				
+				//document.getElementById("showmsg").innerHTML=SCALE;
+				
+			}
+			
+			function focus(delay){
+				
+				popup.style.display="none";
+				popup2.style.display="none";
+				proj.center(center);
+					path.projection(proj);	
+					proj.translate([w/2,h/2]);	
+					path.projection(proj);
+					var s = svg.selectAll("path")
+								.transition()
+								.duration(delay)
+								.attr("d",path);	
+
+					SetPosIcons(delay-100);
+			}
+
+
+			document.getElementById("londonM").addEventListener("click", function(event){
+				
+				openCity(event, 'London'); 
+				
+				if(SCALE===14){					
+					
+					drawEtage(0,"#53C4B1",document.getElementById("TitleConf"));
+				}			
+			
+			}, false);
+							 
+			document.getElementById("ParisM").addEventListener("click", function(event){
+				
+				openCity(event, 'Paris');
+				if(SCALE===14){
+					
+					drawEtage(1,"#04D43B",document.getElementById("TitleSout"));
+				} 
+			}			
+			, false);
+
+			document.getElementById("TokyoM").addEventListener("click", function(event){
+				
+				openCity(event, 'Tokyo');
+				if(SCALE===14){					
+					drawEtage(2,"#F78B0E",document.getElementById("TitleEventU"));
+				} 
+			}
+			, false);
+			
+			function drawEtage(index,fill,description){
+				svg.selectAll("g").remove();
+				d3.json(Departements[IndexDepartements][index]+".json", function(data) {
+					description.innerHTML=data.Description;
+						
+						var etage = svg.selectAll("g")
+										.data(data.features);
+							etage.enter()
+								.append("g")								
+								.append("path")									
+								.attr("d", path)
+								.attr("fill",fill)
+								.attr("stroke","#0C0C0C")
+								.on('mouseup',function(d){
+
+									if( newX!=null && newY!=null){
+										 																														
+										div2.style.left = newX+ "px";
+										div2.style.top = newY+ "px";
+										popup2.innerHTML=d.properties.name;
+										if(firstClick2===true){																						
+											popup2.classList.toggle("show");
+											popup2.style.display="block";
+											firstClick2=false;
+										}else{
+											popup2.classList.toggle("show");
+											popup2.classList.toggle("show");
+											popup2.style.display="block";												
+										}										
+										
+									}else{
+										popup2.style.display="none";										
+									}
+							
+																				
+																														
+								});
+								
+
+					
+					});	
+					proj.translate(lasteTransition);
+					var s = svg.selectAll("path")
+                            .attr("d",path);	
+					SetPosIcons(0);
+			}
+
+			/****************************** svg mose events ****************************/
+			var newX=0,newY=0,mouseDown=false,newCenter,lasteTransition;
+			svg.on('mousedown', function onMapClick(event) {
+				d3.event.preventDefault();
+      			d3.event.stopPropagation();
+				mouseDown=true;
+				newCenter = proj.invert(d3.mouse(this));	
+				proj.center(newCenter);	
+				path.projection(proj);
+
+				newX = d3.mouse(this)[0];
+				newY = d3.mouse(this)[1];				
+								
+				popup.style.display="none";	
+				popup2.style.display="none";				
+				
+			});
+			
+			svg.on('mouseup', function onMapClick() {
+				d3.event.preventDefault();
+      			d3.event.stopPropagation();
+				mouseDown=false;
+				newX = d3.mouse(this)[0];
+				newY = d3.mouse(this)[1];				
+												
+				
+			});		
+					
+			
+			svg.on('mousemove',function(){
+				d3.event.preventDefault();
+      			d3.event.stopPropagation();
+
+				newX = d3.mouse(this)[0];
+				newY = d3.mouse(this)[1];
+
+				if(mouseDown===true){
+					lasteTransition=d3.mouse(this);
+					proj.translate(d3.mouse(this));        					
+					path.projection(proj);
+					var s = svg.selectAll("path")
+                            .attr("d",path);	
+					SetPosIcons(0);
+				}
+
+			});
+
+			function OnwheelEvent(event){
+				//console.log(event);
+				popup.style.display="none";
+				popup2.style.display="none";
+				var sc=(-event.deltaY/3);
+				console.log(sc);
+				if(sc===1){
+					zoumIn(300);
+				}else{
+					zoomOut(300);
+				}
+			
+			}
+			
+			
+			function SetPosIcons(transition){
+				var cc = svg.selectAll("path");
+				var IconWidth=Value();
+				//console.log(cc);
+				cc.each(function (d, i) {
+					var centroid = path.centroid(d);	
+
+					if( ids.indexOf("id"+i) != -1 ){
+						var img = d3.select("#id"+i);
+						
+						img.transition()
+							.duration(transition)						
+							.attr("width",  IconWidth )
+							.attr("height",  IconWidth  )
+							.attr("x", centroid[0])
+							.attr("y",centroid[1])
+							.attr("transform", "translate(" + -IconWidth/2 + "," + -IconWidth/2 + ")");
+
+						if(ids.indexOf("event"+i) != -1){
+							var img = d3.select("#event"+i);
+							
+							img.transition()
+								.duration(transition)
+								.attr("width", IconWidth )
+								.attr("height",  IconWidth )
+								.attr("x", centroid[0])
+								.attr("y",centroid[1]);
+						}
+					}
+						
+				});
+			}
+
+			function Value(){			
+				switch(SCALE){
+					case 1: return 20;
+					case 2: return 25;
+					case 3: return 25;
+					case 4 : return 30;		
+					case 5 : return 35;		
+					case 6 : return 40;	
+					case 7 : return 40;	
+					case 8 : return 40;		
+					default : return 4*SCALE;
+					break;							
+				}
+							
+			}
+			/******************* notification ********************/
+			document.getElementsByClassName("tablink")[0].click();
+
+			function openCity(evt, cityName) {
+			  var i, x, tablinks;
+			  x = document.getElementsByClassName("city");
+			  for (i = 0; i < x.length; i++) {
+				x[i].style.display = "none";
+			  }
+			  tablinks = document.getElementsByClassName("tablink");
+			  for (i = 0; i < x.length; i++) {
+				tablinks[i].classList.remove("w3-light-grey");
+			  }
+			  document.getElementById(cityName).style.display = "block";
+			  evt.currentTarget.classList.add("w3-light-grey");
+			}
+
+			function fillNotification(building,TitleConf,PlannigConf,TitleSout,PlannigSout,TitleEventU,PlannigEventU){
+				document.getElementById("building").innerHTML=building;
+				//conference
+				document.getElementById("londonM").innerHTML='Conférences <img id="notifImgConf" src="icons/information.png" style="position:relative; bottom:10px;" width="14" height="14"/>';
+				document.getElementById("TitleConf").innerHTML=TitleConf;
+				document.getElementById("PlannigConf").innerHTML=PlannigConf;	
+				if(TitleConf.trim()!=="") document.getElementById("notifImgConf").style.visibility="visible";
+				else document.getElementById("notifImgConf").style.visibility="hidden";	
+
+				//Soutenances
+				document.getElementById("ParisM").innerHTML='Soutenances <img id="notifImgSout"src="icons/information.png" style="position:relative;  bottom:10px;" width="14" height="14"/>';
+				document.getElementById("TitleSout").innerHTML=TitleSout;
+				document.getElementById("PlannigSout").innerHTML=PlannigSout;	
+				if(TitleSout.trim()!=="") document.getElementById("notifImgSout").style.visibility="visible";
+				else document.getElementById("notifImgSout").style.visibility="hidden";	
+					
+				//Événement universitaire			
+				document.getElementById("TokyoM").style.visibility="visible";			
+				document.getElementById("TokyoM").innerHTML='Événement universitaire <img id="notifImgEventU"src="icons/information.png" style="position:relative; bottom:10px;" width="14" height="14"/>';			
+				document.getElementById("TitleEventU").innerHTML=TitleEventU;
+				document.getElementById("PlannigEventU").innerHTML=PlannigEventU;		
+				if(TitleEventU.trim()!=="") document.getElementById("notifImgEventU").style.visibility="visible";
+				else document.getElementById("notifImgEventU").style.visibility="hidden";
+						
+			}
+
+			function fillEtage(building,etage){
+				document.getElementById("building").innerHTML=building;
+				//1ere etage
+				document.getElementById("londonM").innerHTML="1ère Étage";		
+				document.getElementById("TitleConf").innerHTML='';						
+				document.getElementById("PlannigConf").innerHTML=''
+				//2eme  etage
+				document.getElementById("ParisM").innerHTML="2éme Étage";
+				document.getElementById("TitleSout").innerHTML='';
+				document.getElementById("PlannigSout").innerHTML='';
+				
+				//3eme etage
+				document.getElementById("TokyoM").innerHTML="3éme Étage";					
+				if(etage.length>2){						
+					document.getElementById("TokyoM").style.visibility="visible";	
+					document.getElementById("TitleEventU").innerHTML="";					
+					document.getElementById("PlannigEventU").innerHTML="";	
+				}else{
+					 document.getElementById("TokyoM").style.visibility="hidden";
+				}
+												
+			}
+
+			var show=true;
+			setInterval(function(){ 
+				if(show==true){
+					svg.selectAll(".SOS").attr("stroke-width","3px").attr("stroke","#F70E0E");
+				}else{
+					svg.selectAll(".SOS").attr("stroke-width","1px").attr("stroke","#0C0C0C");								
+				}
+				if(SCALE==14){
+					
+					var cc = svg.selectAll("path");				
+					//console.log(cc);
+					cc.each(function (d, i) {	
+							
+						if( ids.indexOf("id"+i) !=-1 && d.properties.etage.length>0){
+							var img = d3.select("#id"+i);
+							
+							img.attr("style", "display:none"  );			
+
+							if(ids.indexOf("event"+i) != -1){
+								var img = d3.select("#event"+i);								
+								img.attr("style", "display:none"  );	
+							}
+						}
+													
+							
+					});
+																
+				}else{
+					svg.selectAll("g").remove();
+					svg.selectAll("image").attr("style","display:block");
+					if(notif!==null && notif!== undefined){
+						for(var i=0;i<notif.length;i++){
+							//console.log(notif);
+							if( notif[i]!== undefined){
+								if(show==true){
+									notif[i].style.display="block";
+									
+								}else{
+									notif[i].style.display="none";								
+								}
+							}
+						
+						}
+						
+					
+					}
+				}
+				if(show==true) show=false; else show=true;		
+				
+			}, 1300);
+
+		</script>
+	</body>
+</html>
