@@ -12,4 +12,4 @@ WEB Geovisualization of the University of Science and Technology Houari Boumedie
 
 # Native android mobile application
 
-This WEB application was converted to mobile application using android webview, you can find the mobile varsion at main folder.
+This WEB application was converted to mobile application using android webview, you can find the mobile varsion at the main folder.
