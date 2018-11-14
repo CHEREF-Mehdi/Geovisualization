@@ -5,4 +5,4 @@ WEB Geovisualization of the University of Science and Technology Houari Boumedie
 
 ![alt text](https://github.com/CHEREF-Mehdi/Geovisualization/blob/master/ReadMeImage/demo2.png)
 
-![alt text](https://github.com/CHEREF-Mehdi/Geovisualization/blob/master/ReadMeImage/demo3.PNG)
+![alt text](https://github.com/CHEREF-Mehdi/Geovisualization/blob/master/ReadMeImage/demo3.png)
